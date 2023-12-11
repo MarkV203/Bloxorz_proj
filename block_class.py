@@ -404,7 +404,7 @@ def move(Stack, block):
 def printSuccess(block):
     
     print("\nTHIS IS SUCCESS ROAD")
-    print("================================")
+    print("===============================")
     
     successRoad = [block]
     temp = block.parent
