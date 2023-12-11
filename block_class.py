@@ -86,34 +86,6 @@ class Block_class:
 
         return Block_class(self.x, self.y, self.rotation, self.parent, self.board, self.x1 + delta_x, self.y1 + delta_y)
         
-        
-    def read_map(self, fileMap):
-        with open(fileMap) as f:
-            MAP_ROW, MAP_COL, xStart, yStart = [int(x) for x in next(f).split()] # read first line
-            sourceMap = []
-            countMapLine = 1
-            for line in f: # read map
-                countMapLine += 1
-                sourceMap.append([int(x) for x in line.split()])
-                if countMapLine > MAP_ROW:
-                    break
-
-            # read managedBoard
-            manaBoa = []
-            for line in f: # read manaBoa
-                manaBoa.append([int(x) for x in line.split()])
-
-        return MAP_ROW, MAP_COL, xStart, yStart, sourceMap, manaBoa
-
-    def display_map(self):
-        for item in self.sourceMap:
-            print(item)
-        print("Start at (", self.xStart, ",", self.yStart,")")
-        print("ManaBoa:")
-        for item in self.ManaBoa:
-            print(item)
-        print("======================================")
-        
     def display_position(self):
         position = f"{self.rotation} at ({self.x}, {self.y})"
         if self.rotation == "SPLIT":
