@@ -1,7 +1,6 @@
 import copy
 import sys
 import queue as Q
-import Gameboard
 
 class Block_class:
 
@@ -13,7 +12,7 @@ class Block_class:
         self.board = copy.deepcopy(board)
         self.x1 = x1
         self.y1 = y1
-        
+
     def read_map(self, fileMap):
         with open(fileMap) as f:
             MAP_ROW, MAP_COL, xStart, yStart = [int(x) for x in next(f).split()] # read first line
