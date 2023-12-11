@@ -58,7 +58,8 @@ class Block_class:
 
         return Block_class(self.x + delta_x, self.y + delta_y, rotation_change or self.rotation, self.parent, self.board)
 
-    def split_move(self, direction, split_part='first'):
+    def split_move(self, direction):
+        """Moves the first part of the block in the first direction."""
         delta_x, delta_y = 0, 0
         if direction == 'up':
             delta_y = -1
@@ -69,10 +70,22 @@ class Block_class:
         elif direction == 'right':
             delta_x = 1
 
-        if split_part == 'first':
-            return Block_class(self.x + delta_x, self.y + delta_y, self.rotation, self.parent, self.board, self.x1, self.y1)
-        else:
-            return Block_class(self.x, self.y, self.rotation, self.parent, self.board, self.x1 + delta_x, self.y1 + delta_y)
+        return Block_class(self.x + delta_x, self.y + delta_y, self.rotation, self.parent, self.board, self.x1, self.y1)
+
+    def split_move1(self, direction):
+        """Moves the second part of the block in the specified direction."""
+        delta_x, delta_y = 0, 0
+        if direction == 'up':
+            delta_y = -1
+        elif direction == 'down':
+            delta_y = 1
+        elif direction == 'left':
+            delta_x = -1
+        elif direction == 'right':
+            delta_x = 1
+
+        return Block_class(self.x, self.y, self.rotation, self.parent, self.board, self.x1 + delta_x, self.y1 + delta_y)
+        
         
     def read_map(self, fileMap):
         with open(fileMap) as f:
