@@ -305,3 +305,47 @@ def printSuccess(block):
         item.display_board()
 
     print("COMSUME",step,"STEP!!!!")
+
+    # solve BFS
+def BFS(block):
+    #create local board variable from object block
+    board = block.board
+    #initialize queue and append block to 
+    Queue = []
+    Queue.append(block)
+    passState.append(block)
+
+    simulateStep = 0
+
+    while Queue:
+        current = Queue.pop(0)
+        #current.disPlayPosition()
+        #current.disPlayBoard()
+
+        if isGoal(current):
+            printSuccessRoad(current)
+            print("SUCCESS")
+            print("CONSUME", simulateStep, "SIMULATION STEP")
+            return True
+
+        #
+        if current.rotation != "SPLIT":
+            simulateStep += 4
+
+            move(Queue,current.move('up'), "up")
+            move(Queue,current.move('right'), "right")
+            move(Queue,current.move('down'), "down")
+            move(Queue,current.move('left'), "left")
+        else: 
+            simulateStep += 8
+
+            move(Queue,current.split_move('left'), "left0")
+            move(Queue,current.split_move('right'), "right0")
+            move(Queue,current.split_move('up'), "up0")
+            move(Queue,current.split_move('down'), "down0")
+            
+            move(Queue,current.split_move1('left'), "left1")
+            move(Queue,current.split_move1('right'), "right1")
+            move(Queue,current.split_move1('up'), "up1")
+            move(Queue,current.split_move1('down'), "down1")
+    return False
