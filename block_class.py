@@ -13,32 +13,31 @@ class Block_class:
         self.x1 = x1
         self.y1 = y1
 
-    def read_map(self, fileMap):
+    def readMap(fileMap):
         with open(fileMap) as f:
-            MAP_ROW, MAP_COL, xStart, yStart = [int(x) for x in next(f).split()] # read first line
+            map_x, map_y, start_x, start_y = [int(x) for x in next(f).split()] # read map dimensions and start Coordinates
             sourceMap = []
             countMapLine = 1
             for line in f: # read map
                 countMapLine += 1
                 sourceMap.append([int(x) for x in line.split()])
-                if countMapLine > MAP_ROW:
-                    break
+                if countMapLine > map_x: break
 
-            # read managedBoard
-            manaBoa = []
-            for line in f: # read manaBoa
-                manaBoa.append([int(x) for x in line.split()])
+            # read buttons on map
+            map_buttons = []
+            for line in f: # read buttons on bmap
+                # 2 2 4 4 4 5
+                map_buttons.append([int(x) for x in line.split()])
 
-        return MAP_ROW, MAP_COL, xStart, yStart, sourceMap, manaBoa
-
-    def display_map(self):
-        for item in self.sourceMap:
+        print("\nYOUR MAP LOOK LIKE THIS:")
+        for item in sourceMap:
             print(item)
-        print("Start at (", self.xStart, ",", self.yStart,")")
-        print("ManaBoa:")
-        for item in self.ManaBoa:
+        print("Start at (",start_x, ",", start_y,")")
+        print("Button Coordinates:")
+        for item in map_buttons:
             print(item)
         print("======================================")
+        return map_x, map_y, start_x, start_y, sourceMap, map_buttons
 
     def move(self, direction):
         delta_x, delta_y = 0, 0
