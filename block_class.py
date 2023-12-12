@@ -560,7 +560,8 @@ def BFS(block):
     board = block.board
     Queue = []
     Queue.append(block)
-
+    passState.append(block)
+    
     while Queue:
         current = Queue.pop(0)
 
