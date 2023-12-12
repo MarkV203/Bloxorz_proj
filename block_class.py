@@ -1,67 +1,114 @@
+# -*- coding: utf-8 -*- 
+# CMPSC 441 Final Project - Bloxorz AI Solver
+# Author: Krish Parikh, Mark Vernachio, Donovan Biedermann 
+
+
 import copy
 import sys
 import queue as Q
 
 def readMap(fileMap):
-        with open(fileMap) as f:
-            map_x, map_y, start_x, start_y = [int(x) for x in next(f).split()] # read map dimensions and start Coordinates
-            sourceMap = []
-            countMapLine = 1
-            for line in f: # read map
-                countMapLine += 1
-                sourceMap.append([int(x) for x in line.split()])
-                if countMapLine > map_x: break
+    with open(fileMap) as f:
+        map_x, map_y, start_x, start_y = [int(x) for x in next(f).split()] # read map dimensions and start Coordinates
+        sourceMap = []
+        countMapLine = 1
+        for line in f: # reads map
+            countMapLine += 1
+            sourceMap.append([int(x) for x in line.split()])
+            if countMapLine > map_x: break
 
-            for line in f: # read buttons on bmap
-                # 2 2 4 4 4 5
-                map_buttons.append([int(x) for x in line.split()])
+        # read buttons on map
+        map_buttons = []
+        for line in f: # read buttons on map like this: (button x, button y, number of affected tiles, tile1 x, tile1 y, etc)
+            map_buttons.append([int(x) for x in line.split()])
 
-        print("\nYOUR MAP LOOK LIKE THIS:")
-        for item in sourceMap:
-            print(item)
-        print("Start at (",start_x, ",", start_y,")")
-        print("Button Coordinates:")
-        for item in map_buttons:
-            print(item)
-        print("======================================")
-        return map_x, map_y, start_x, start_y, sourceMap, map_buttons
+    print("\nMAP LAYOUT:")
+    for item in sourceMap:
+        print(item)
+    print("Starting at (",start_x, ",", start_y,")")
+    print("Button Coordinates:")
+    for item in map_buttons:
+        print(item)
+    print("======================================")
+    return map_x, map_y, start_x, start_y, sourceMap, map_buttons
 
+#Object to track all the attributes while searching for goal and contains functions for moving the block.
 class Block_class:
 
-    def __init__(self, x, y, rotation, parent, board, x1=None, y1=None):
-        self.x = x
-        self.y = y
-        self.rotation = rotation
+    def __init__(self, x, y, rot, parent, board, x1=None,y1=None):
+        self.x      = x
+        self.y      = y
+        self.rot    = rot  
         self.parent = parent
-        self.board = copy.deepcopy(board)
-        self.x1 = x1
-        self.y1 = y1
-
+        self.board  = copy.deepcopy(board)
+        self.x1     = x1
+        self.y1     = y1
+    
     def __lt__(self, block):
         return True
-    
     def __gt__(self, block):
         return True
-    
-    def block_move(self, direction):
-        delta_x, delta_y = 0, 0
-        rotation_change = None
 
-        if direction == 'right':
-            delta_x = 1 if self.rotation in ["STAND", "LAY_Y"] else 2
-            rotation_change = "LAY_X" if self.rotation == "STAND" else "STAND"
-        elif direction == 'left':
-            delta_x = -1 if self.rotation in ["STAND", "LAY_Y"] else -2
-            rotation_change = "LAY_X" if self.rotation == "STAND" else "STAND"
+    def move_block(self, direction):
+        newBlock = Block_class(self.x, self.y, self.rot, self, self.board)
+
+        if direction == 'left':
+            if newBlock.rot == "STANDING":
+                newBlock.rot = "LAYING_X"
+                newBlock.x -= 2
+
+            elif newBlock.rot == "LAYING_X":
+                newBlock.x -= 1
+                newBlock.rot = "STANDING"
+
+            elif newBlock.rot == "LAYING_Y":
+                newBlock.x -= 1
+
+            return newBlock
+
+        elif direction == 'right':
+            if newBlock.rot == "STANDING":
+                newBlock.x += 1
+                newBlock.rot = "LAYING_X"
+
+            elif newBlock.rot == "LAYING_X":
+                newBlock.x += 2
+                newBlock.rot = "STANDING"
+
+            elif newBlock.rot == "LAYING_Y":
+                newBlock.x += 1
+             
+            return newBlock
+
         elif direction == 'up':
-            delta_y = -1 if self.rotation in ["STAND", "LAY_X"] else -2
-            rotation_change = "LAY_Y" if self.rotation == "STAND" else "STAND"
-        elif direction == 'down':
-            delta_y = 1 if self.rotation in ["STAND", "LAY_X"] else 2
-            rotation_change = "LAY_Y" if self.rotation == "STAND" else "STAND"
+            if self.rot == "STANDING":
+                newBlock.y -= 2 
+                newBlock.rot = "LAYING_Y"
 
-        return Block_class(self.x + delta_x, self.y + delta_y, rotation_change or self.rotation, self.parent, self.board)
+            elif newBlock.rot == "LAYING_X":
+                newBlock.y -= 1
+        
+            elif newBlock.rot == "LAYING_Y":
+                newBlock.y -= 1
+                newBlock.rot = "STANDING"
+        
+            return newBlock
 
+        else:
+            if newBlock.rot == "STANDING":
+                newBlock.y += 1
+                newBlock.rot = "LAYING_Y"
+
+            elif newBlock.rot == "LAYING_X":
+                newBlock.y += 1
+
+            elif newBlock.rot == "LAYING_Y":
+                newBlock.y += 2
+                newBlock.rot = "STANDING"
+
+            return newBlock
+
+    # function to move when block is split
     def split_move(self, direction):
         """Moves the first part of the block in the first direction."""
         delta_x, delta_y = 0, 0
@@ -74,8 +121,9 @@ class Block_class:
         elif direction == 'right':
             delta_x = 1
 
-        return Block_class(self.x + delta_x, self.y + delta_y, self.rotation, self.parent, self.board, self.x1, self.y1)
+        return Block_class(self.x + delta_x, self.y + delta_y, self.rot, self.parent, self.board, self.x1, self.y1)
 
+    #function for second split block
     def split_move1(self, direction):
         """Moves the second part of the block in the specified direction."""
         delta_x, delta_y = 0, 0
@@ -88,38 +136,58 @@ class Block_class:
         elif direction == 'right':
             delta_x = 1
 
-        return Block_class(self.x, self.y, self.rotation, self.parent, self.board, self.x1 + delta_x, self.y1 + delta_y)
-        
-    def display_position(self):
-        position = f"{self.rotation} at ({self.x}, {self.y})"
-        if self.rotation == "SPLIT":
-            position += f" and ({self.x1}, {self.y1})"
-        print(position)
+        return Block_class(self.x, self.y, self.rot, self.parent, self.board, self.x1 + delta_x, self.y1 + delta_y)
 
-    def display_board(self):
-        for row_index, row in enumerate(self.board):
-            for col_index, col in enumerate(row):
-                if self.is_block_position(row_index, col_index):
-                    print("x", end=' ')
-                elif col == 0:
-                    print(" ", end=' ')
-                else:
-                    print(col, end=' ')
-            print("")
-    
-    def is_block_position(self, row_index, col_index):
-        if self.rotation != "SPLIT":
-            if (self.y, self.x) == (row_index, col_index):
-                return True
-            if self.rotation == "LAY_X" and (self.y, self.x + 1) == (row_index, col_index):
-                return True
-            if self.rotation == "LAY_Y" and (self.y + 1, self.x) == (row_index, col_index):
-                return True
+    def display_position(self):
+        if self.rot != "SPLIT":
+            print(self.rot, self.x, self.y)
         else:
-            return (self.y, self.x) == (row_index, col_index) or (self.y1, self.x1) == (row_index, col_index)
-        return False
+            print(self.rot, self.x, self.y, self.x1, self.y1)
     
-def isNumberThree(block,x,y):
+    def display_board(self):
+        
+        # defines variables from object locally
+        x   = self.x
+        y   = self.y
+        x1  = self.x1
+        y1  = self.y1
+        rot = self.rot
+        board = self.board
+
+        #for normal case when block isn't split
+        if rot != "SPLIT":
+            
+            for i in range(len(board)): # for row
+                print("",end='  ')
+                for j in range(len(board[i])): # for column in row
+
+                    if (i==y and j==x and rot=="STANDING") or \
+                            ((i==y and j==x) or (i==y and j==x+1) and rot=="LAYING_X") or \
+                            ((i==y and j==x) or (i==y+1 and j==x) and rot=="LAYING_Y"):
+
+                        print("x",end=' ')
+
+                    elif(board[i][j]==0):
+                        print(" ",end=' ')
+                    else:
+                        print(board[i][j], end=' ')
+                print("")
+        else: # For when block is split
+            for i in range(len(board)): # for row
+                print("",end='  ')
+                for j in range(len(board[i])): # for column
+
+                    if (i==y and j==x) or (i==y1 and j==x1):
+                        print("x",end=' ')
+
+                    elif(board[i][j]==0):
+                        print(" ",end=' ')
+                    else:
+                        print(board[i][j], end=' ')
+                print("")
+    
+# Button 3 regular X switch
+def is_three(block,x,y):
     board = block.board
 
     for item in map_buttons:
@@ -138,7 +206,7 @@ def isNumberThree(block,x,y):
                         board[bX][bY] = 0
                 index = index + 1 + 2 * numToggle
 
-                # close
+                # closes the bridge
                 if index < len(item):
                     numClose = item[index]
                     for i in range(numClose):
@@ -147,7 +215,7 @@ def isNumberThree(block,x,y):
                         board[bX][bY]=0
                     index = index + 1 + 2 * numClose
             
-                # open
+                # opens the bridge
                 if index < len(item):
                     numOpen = item[index]
                     for i in range(numOpen):
@@ -156,8 +224,7 @@ def isNumberThree(block,x,y):
                         board[bX][bY]=1
 
 
-
-# Case 4: O button (close only)
+# Button 4 O switch that only closes
 def is_four(block,x,y):
     board = block.board
 
@@ -169,7 +236,7 @@ def is_four(block,x,y):
                 bY = item[2*i+4]
                 board[bX][bY] = 0
 
-# Case 5: O button (regular)
+# Button 5 regular O switch
 def is_five(block,x,y):
     board = block.board
 
@@ -188,7 +255,7 @@ def is_five(block,x,y):
             
             index = index + 1 + 2 * numToggle
 
-            # close
+            # closes the bridge
             if index < len(item):
                 numClose = item[index]
                     
@@ -200,7 +267,7 @@ def is_five(block,x,y):
                 index = index + 1 + 2 * numClose
             
 
-            # open
+            # opens the bridge
             if index < len(item):
                 numOpen = item[index]
 
@@ -210,7 +277,7 @@ def is_five(block,x,y):
                     board[bX][bY]=1
 
 
-# Case 6: O button (open only)
+# Button 6 O switch that only opens
 def is_six(block,x,y):
     board = block.board
 
@@ -222,106 +289,116 @@ def is_six(block,x,y):
                 bY = item[2*i+4]
                 board[bX][bY] = 1
 
-# Case 7: teleport and split
+# Button 7 switch that teleports and switches block
 def is_seven(block,x,y):  
+    board = block.board
     array = []    
-
     for item in map_buttons:
         if (x,y) ==  (item[0], item[1]):
             num = item[2]
+            # format x7 y7 2 x y x1 y1
             for i in range(num):
                 bX = item[2*i+3]
                 bY = item[2*i+4]
                 array.append([bX,bY])
-    (block.y,block.x,block.y1,block.x1) = (array[0][0],array[0][1],array[1][0], array[1][1])
-    block.rotation = "SPLIT"
 
-    # Case 8: X button (open only)
+    (block.y,block.x,block.y1,block.x1) = (array[0][0],array[0][1],array[1][0], array[1][1])
+
+    block.rot = "SPLIT"
+
+# Button 8 X switch that only opens
 def is_eight(block,x,y):
     board = block.board
 
     for item in map_buttons:
         if (x,y) ==  (item[0], item[1]):
+
             num = item[2]
             for i in range(num):
                 bX = item[2*i+3]
                 bY = item[2*i+4]
                 board[bX][bY] = 1
-# is_valid
+
+
+
+
+# checks to make sure the block is valid
 def is_block(block):
     
     if is_floor(block):
         
         # local definition
-        x   = block.x
-        y   = block.y
-        x1  = block.x1
-        y1  = block.y1
-        rotation = block.rotation
+        x     = block.x
+        y     = block.y
+        x1    = block.x1
+        y1    = block.y1
+        rot   = block.rot
         board = block.board
         
         
-        if rotation == "STANDING" and board[y][x] == 2:
+        if rot == "STANDING" and board[y][x] == 2:
             return False 
 
- 
-        if rotation == "STANDING" and board[y][x] == 3:
-            isNumberThree(block,x,y)
+        # Button 3
+        if rot == "STANDING" and board[y][x] == 3:
+            is_three(block,x,y)
         
+        # Button 4
         if board[y][x] == 4:
             is_four(block,x,y)
-        if rotation == "LAYING_X" and board[y][x+1] == 4:
+        if rot == "LAYING_X" and board[y][x+1] == 4:
             is_four(block,x+1,y)
-        if rotation == "LAYING_Y" and board[y+1][x] == 4:
+        if rot == "LAYING_Y" and board[y+1][x] == 4:
             is_four(block,x,y+1)
-        if rotation == "SPLIT" and board[y1][x1] == 4:
+        if rot == "SPLIT" and board[y1][x1] == 4:
             is_four(block,x1,y1)
 
 
+        # Button 5
         if board[y][x] == 5:
             is_five(block,x,y)
-        if rotation == "LAYING_X" and board[y][x+1] == 5:
+        if rot == "LAYING_X" and board[y][x+1] == 5:
             is_five(block,x+1,y)
-        if rotation == "LAYING_Y" and board[y+1][x] == 5:
+        if rot == "LAYING_Y" and board[y+1][x] == 5:
             is_five(block,x,y+1)
-        if rotation == "SPLIT" and board[y1][x1] == 5:
+        if rot == "SPLIT" and board[y1][x1] == 5:
             is_five(block,x1,y1)
 
-        
+        # Button 6
         if board[y][x] == 6:
             is_six(block,x,y)
-        if rotation == "LAYING_X" and board[y][x+1] == 6:
+        if rot == "LAYING_X" and board[y][x+1] == 6:
             is_six(block,x+1,y)
-        if rotation == "LAYING_Y" and board[y+1][x] == 6:
+        if rot == "LAYING_Y" and board[y+1][x] == 6:
             is_six(block,x,y+1)
-        if rotation == "SPLIT" and board[y1][x1] == 6:
+        if rot == "SPLIT" and board[y1][x1] == 6:
             is_six(block,x1,y1)
 
-        # Case 7: Phân thân 
-        if rotation == "STANDING" and board[y][x] == 7:
+        # Button 7
+        if rot == "STANDING" and board[y][x] == 7:
             is_seven(block,x,y)
-        # Case7_1: MERGE BLOCK
-        if rotation == "SPLIT": # check IS_MERGE
-            # case LAYING_X: x first
+        # Split case when it is button 7
+        if rot == "SPLIT": 
+            # when LAYING_X
             if y == y1 and x == x1 -1:
-                block.rotation = "LAYING_X"
+                block.rot = "LAYING_X"
 
-            # case LAYING_X: x1 first
+            # when LAYING_X
             if y == y1 and x == x1 + 1:
-                block.rotation = "LAYING_X"
+                block.rot = "LAYING_X"
                 block.x   = x1
 
-            # case LAYING_Y: y first
+            # when LAYING_Y
             if x == x1 and y == y1 - 1:
-                block.rotation = "LAYING_Y"
+                block.rot = "LAYING_Y"
             
-            # case LAYING_Y: y1 first
+            # when LAYING_Y
             if x == x1 and y == y1 + 1:
-                block.rotation = "LAYING_Y"
+                block.rot = "LAYING_Y"
                 block.y   = y1
 
-        # Case 8: Chữ X (only mở)
-        if rotation == "STANDING" and board[y][x] == 8:
+        # Button 8
+        if rot == "STANDING" and board[y][x] == 8:
             is_eight(block,x,y)
             
         return True
@@ -332,58 +409,54 @@ def is_block(block):
 def is_floor(block):
     x = block.x
     y = block.y
-    rotation = block.rotation
+    rot = block.rot
     board = block.board
     
-    # Check if the main part of the block is on the floor
-    if x < 0 or y < 0 or y >= map_x or x >= map_y or board[y][x] == 0:
+    if x >= 0 and y >= 0 and y < map_x and x < map_y and board[y][x] != 0:
+
+        if rot == "STANDING":
+            return True
+        elif rot == "LAYING_Y":
+            if y+1 < map_x and board[y+1][x] != 0 :
+                return True
+        elif rot == "LAYING_X":
+            if x+1 < map_y and board[y][x+1] != 0 :
+                return True
+        else: # when block is split 
+            x1 = block.x1
+            y1 = block.y1
+
+            if x1 >= 0 and y1 >= 0 and y1 < map_x and x1 < map_y and board[y1][x1] != 0:
+                    return True
+
+    else:
         return False
-
-    if rotation in ["STAND", "LAY_X", "LAY_Y"]:
-        # Additional checks for LAY_X and LAY_Y rotations
-        if rotation == "LAY_X" and (x + 1 >= map_y or board[y][x + 1] == 0):
-            return False
-        if rotation == "LAY_Y" and (y + 1 >= map_x or board[y + 1][x] == 0):
-            return False
-        return True
-
-    if rotation == "SPLIT":
-        x1 = block.x1
-        y1 = block.y1
-        # Check if the split parts of the block are on the floor
-        return x1 is not None and y1 is not None and \
-               0 <= x1 < map_y and 0 <= y1 < map_x and \
-               board[y1][x1] != 0
-
-    return False
 
 
 def is_goal(block):
     x = block.x
     y = block.y
-    rotation = block.rotation
+    rot = block.rot
     board = block.board
 
-    if rotation == "STANDING" and  \
-        board[y][x] == 9:
+    if rot == "STANDING" and board[y][x] == 9:
         return True
     else:
         return False
 
-
+# function checks if visited when move function is called
 def is_visited(block):
-    if block.rotation != "SPLIT":
+    #For regular case
+    if block.rot != "SPLIT":
 
         for item in passState:
-            if item.x == block.x     and item.y == block.y and \
-                item.rotation == block.rotation and item.board == block.board:
+            if item.x == block.x and item.y == block.y and item.rot == block.rot and item.board == block.board:
                 return True
-
-    else: # case SPLIT
+    #only when block is split
+    else: 
         for item in passState:
-            if item.x  == block.x     and item.y  == block.y and \
-               item.x1 == block.x1    and item.y1 == block.y1 and \
-                item.rotation == block.rotation and item.board == block.board:
+            if item.x  == block.x and item.y == block.y and item.x1 == block.x1 \
+            and item.y1 == block.y1 and item.rot == block.rot and item.board == block.board:
                 return True
 
     return False
@@ -391,79 +464,118 @@ def is_visited(block):
 def move(Stack, block):
 
     if is_block(block):
+        #checks if visited
         if is_visited(block):
             return None
 
         Stack.append(block)
         passState.append(block)
-        #print(flag)
+
         return True 
 
     return False   
 
-def printSuccess(block):
+def final_path(block):
     
-    print("\nTHIS IS SUCCESS ROAD")
-    print("===============================")
+    print("\nPath: ")
+    print("================================")
     
-    successRoad = [block]
+    path = [block]
     temp = block.parent
     
     while temp != None:
         
-        if temp.rotation != "SPLIT":
+        if temp.rot != "SPLIT":
             newBlock = Block_class(temp.x, temp.y, \
-                    temp.rotation, temp.parent, temp.board)
+                    temp.rot, temp.parent, temp.board)
         else: # case SPLIT
             newBlock = Block_class(temp.x, temp.y, \
-                    temp.rotation, temp.parent, temp.board, temp.x1, temp.y1)
+                    temp.rot, temp.parent, temp.board, temp.x1, temp.y1)
 
-        successRoad = [newBlock] + successRoad
+        path = [newBlock] + path
         
         temp = temp.parent
     
     step = 0
-    for item in successRoad:
+    for item in path:
         step += 1
         print("\nStep:", step, end=' >>>   ')
         item.display_position()
         print("=============================")
         item.display_board()
 
-    print("COMSUME",step,"STEP!!!!")
+    print("The level was solved in", step, "steps")
 
+    return False
+
+def move(Stack, block):
+
+    if is_block(block):
+        #checks if visited
+        if is_visited(block):
+            return None
+
+        Stack.append(block)
+        passState.append(block)
+
+        return True 
+
+    return False   
+
+def final_path(block):
+    
+    print("\nPath: ")
+    print("================================")
+    
+    path = [block]
+    temp = block.parent
+    
+    while temp != None:
+        
+        if temp.rot != "SPLIT":
+            newBlock = Block_class(temp.x, temp.y, \
+                    temp.rot, temp.parent, temp.board)
+        else: # case SPLIT
+            newBlock = Block_class(temp.x, temp.y, \
+                    temp.rot, temp.parent, temp.board, temp.x1, temp.y1)
+
+        path = [newBlock] + path
+        
+        temp = temp.parent
+    
+    step = 0
+    for item in path:
+        step += 1
+        print("\nStep:", step, end=' >>>   ')
+        item.display_position()
+        print("=============================")
+        item.display_board()
+
+    print("The level was solved in", step, "steps")
+    
+
+# solve BFS
 def BFS(block):
-#create local board variable from object block
+
     board = block.board
-    #initialize queue and append block to 
     Queue = []
     Queue.append(block)
     passState.append(block)
-
-    simulateStep = 0
-
+    
     while Queue:
         current = Queue.pop(0)
-        #current.disPlayPosition()
-        #current.disPlayBoard()
 
         if is_goal(current):
-            printSuccess(current)
+            final_path(current)
             print("SUCCESS")
-            print("CONSUME", simulateStep, "SIMULATION STEP")
             return True
 
-        #
-        if current.rotation != "SPLIT":
-            simulateStep += 4
-
-            move(Queue,current.block_move('up'))
-            move(Queue,current.block_move('right'))
-            move(Queue,current.block_move('down'))
-            move(Queue,current.block_move('left'))
+        if current.rot != "SPLIT":
+            move(Queue,current.move_block('left'))
+            move(Queue,current.move_block('right'))
+            move(Queue,current.move_block('up'))
+            move(Queue,current.move_block('down'))
         else: 
-            simulateStep += 8
-
             move(Queue,current.split_move('left'))
             move(Queue,current.split_move('right'))
             move(Queue,current.split_move('up'))
@@ -475,10 +587,13 @@ def BFS(block):
             move(Queue,current.split_move1('down'))
     return False
 
+
+
+# START PROGRAM HERE
 passState = []
-map_x, map_y, start_x, start_y, sourceMap, map_buttons = readMap('map01.txt')
+
+map_x, map_y, start_x, start_y, sourceMap, map_buttons = readMap('map08.txt')
 
 block = Block_class(start_x, start_y, "STANDING", None, sourceMap)
-
-
+ 
 BFS(block)
