@@ -32,7 +32,7 @@ def readMap(fileMap):
     print("======================================")
     return map_x, map_y, start_x, start_y, sourceMap, map_buttons
 
-#Object to track all the attributes while searching for goal and contains functions for moving the block
+#Object to track all the attributes while searching for goal and contains functions for moving the block.
 class Block_class:
 
     def __init__(self, x, y, rot, parent, board, x1=None,y1=None):
