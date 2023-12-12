@@ -592,7 +592,7 @@ def BFS(block):
 # START PROGRAM HERE
 passState = []
 
-map_x, map_y, start_x, start_y, sourceMap, map_buttons = readMap('map06.txt')
+map_x, map_y, start_x, start_y, sourceMap, map_buttons = readMap('Bloxorz_maps\map06.txt')
 
 block = Block_class(start_x, start_y, "STANDING", None, sourceMap)
  
