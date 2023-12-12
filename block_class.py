@@ -508,14 +508,14 @@ def final_path(block):
 
     return False
 
-def move(Stack, block):
+def move(Queue, block):
 
     if is_block(block):
         #checks if visited
         if is_visited(block):
             return None
 
-        Stack.append(block)
+        Queue.append(block)
         passState.append(block)
 
         return True 
